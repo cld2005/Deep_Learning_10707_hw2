@@ -1,0 +1,1 @@
+samples= sample (newrbms,1000,100);
