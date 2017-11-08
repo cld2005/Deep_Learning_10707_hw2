@@ -16,7 +16,7 @@ for i=1:rounds
     anns{i}.set_load_exernal_weights(preload_set(i));
     rbm=load('../DLHW2/answer/5/a/rbm_a.mat');
     rbm=rbm.rbms{1};
-    anns{i}.set_pre_load_weight(rbm.weights);
+    anns{i}.set_pre_load_weight(gather(rbm.weights));
     [train_error,vali_error]=anns{i}.train(num_hidden_layer,num_hidden_neuron,learning_rate,batch_size,epoches,momentum);
     
 end
