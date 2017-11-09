@@ -1,0 +1,12 @@
+lm = LM();
+num_hidden_neuron = 128;
+learning_rate=0.1;
+batch_size=128;
+epoches=100;
+momentum=0;
+
+%lm.init(num_hidden_neuron,batch_size);
+
+%[error_value,correct_count]=lm.forward_prop(lm.train(1:10,:));
+
+lm.train_method(num_hidden_neuron,learning_rate,batch_size,epoches,momentum);
