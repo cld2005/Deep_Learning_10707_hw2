@@ -10,7 +10,7 @@ fprintf('reading validation data  currently nothing ...\n')
 
 fprintf('reading dictionary data ...\n')
 dictionary=textread('dict.txt','%s');
-validation_size_m = numel(textread('val.txt','%s'))
+validation_size_m = 431;
 validate=textread('vFGI.txt','','delimiter',',');
 fprintf('Load data finish ...\n')
 end

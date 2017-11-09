@@ -90,7 +90,7 @@ classdef LM < handle
              correct =(indout==indres);
         end
         
-        function [corss_entropy_error, perplexity]=forward_validation(obj,validation)
+        function [corss_entropy_error, perplexity]=forward_validation(obj,validation,m)
             x = validation(:,1:size(validation,2)-1);
             temp = obj.word_embed(x',:);
             temp=temp';
@@ -106,6 +106,8 @@ classdef LM < handle
             obj.output = softmax(obj.postactivation{end});
             f=dot(obj.output,result);
             corss_entropy_error =sum( -1*log(f));
+            l=sum(log( sum(obj.output.*result))/log(2))/m;
+            perplexity=2^(-l);
         end
         
         function [d_weight, d_bias,grad_h] = back_prop (obj,train)
@@ -189,7 +191,9 @@ classdef LM < handle
                  train_error(epoch,1)=gather(epoch_cross_entropy_error)/sample_count;
                  train_error(epoch,2)=(1-gather(epoch_success_count)/sample_count)*100;
                  
+                 [forward_validation,m]
                  fprintf('training cross entropy %f, error rate %f\n', train_error(epoch,1), train_error(epoch,2));
+                 
                  toc
              end
          end 

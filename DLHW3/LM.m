@@ -21,6 +21,8 @@ classdef LM < handle
         word_embed = [];
         embed_size=16;
         
+        m;
+        
     end
     
     methods
@@ -36,7 +38,7 @@ classdef LM < handle
         end
         
         function LM_load_data(obj)
-             [obj.train,obj.validate,obj.dict]=LoadData();
+             [obj.train,obj.validate,obj.m,obj.dict]=LoadData();
              obj.train=gpuArray(obj.train);
              obj.validate=gpuArray(obj.validate);
              obj.dict=obj.dict;
@@ -90,23 +92,25 @@ classdef LM < handle
              correct =(indout==indres);
         end
         
-        function [corss_entropy_error, perplexity]=forward_validation(obj,validation,m)
+        function [corss_entropy_error, perplexity]=forward_validation(obj,validation)
             x = validation(:,1:size(validation,2)-1);
             temp = obj.word_embed(x',:);
             temp=temp';
-            obj.postactivation{1}=reshape (temp(:), [obj.embed_size*3 size(validation,1)]);
+            postactivation={};
+            preactivation={};
+            postactivation{1}=reshape (temp(:), [obj.embed_size*3 size(validation,1)]);
             result = gpuArray(zeros(8000,size(validation,1)));
             ind = sub2ind(size(result),validation(:,size(validation,2))',[1:size(validation,1)]);
             
             result(ind)=1;
             for i = 2:obj.num_of_layers
-                 obj.preactivation{i}=obj.weights{i}*obj.postactivation{i-1}+obj.biases{i};
-                 obj.postactivation{i}=obj.preactivation{i};
+                 preactivation{i}=obj.weights{i}*postactivation{i-1}+obj.biases{i};
+                 postactivation{i}=preactivation{i};
             end
-            obj.output = softmax(obj.postactivation{end});
-            f=dot(obj.output,result);
+            output = softmax(postactivation{end});
+            f=dot(output,result);
             corss_entropy_error =sum( -1*log(f));
-            l=sum(log( sum(obj.output.*result))/log(2))/m;
+            l=sum(log( sum(output.*result))/log(2))/obj.m;
             perplexity=2^(-l);
         end
         
@@ -183,7 +187,7 @@ classdef LM < handle
                     
                     
                     for i =1:size(batch_d_embed,1)
-                        obj.word_embed(embed_index(i),:)=obj.word_embed(embed_index(i),:)-learning_rate*batch_d_embed(i);
+                        %obj.word_embed(embed_index(i),:)=obj.word_embed(embed_index(i),:)-learning_rate*batch_d_embed(i);
                     end
                    
 
@@ -191,7 +195,9 @@ classdef LM < handle
                  train_error(epoch,1)=gather(epoch_cross_entropy_error)/sample_count;
                  train_error(epoch,2)=(1-gather(epoch_success_count)/sample_count)*100;
                  
+                 [corss_entropy_error, perplexity]=obj.forward_validation(obj.validate);
                  fprintf('training cross entropy %f, error rate %f\n', train_error(epoch,1), train_error(epoch,2));
+                 fprintf('validation cross entropy %f, perplexity %f\n', corss_entropy_error, perplexity);
                  toc
              end
          end 
