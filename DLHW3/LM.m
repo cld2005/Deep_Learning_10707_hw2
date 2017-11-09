@@ -90,7 +90,7 @@ classdef LM < handle
              correct =(indout==indres);
         end
         
-        function [corss_entropy_error, perplexity]=forward_validation(obj,validation)
+        function [corss_entropy_error, perplexity]=forward_validation(obj,validation,m)
             x = validation(:,1:size(validation,2)-1);
             temp = obj.word_embed(x',:);
             temp=temp';
@@ -106,7 +106,7 @@ classdef LM < handle
             obj.output = softmax(obj.postactivation{end});
             f=dot(obj.output,result);
             corss_entropy_error =sum( -1*log(f));
-            l=mean(log( sum(obj.output.*result))/log(2));
+            l=sum(log( sum(obj.output.*result))/log(2))/m;
             perplexity=2^(-l);
         end
         
