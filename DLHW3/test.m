@@ -1,7 +1,7 @@
 lm = LM();
 num_hidden_neuron = 128;
 learning_rate=0.1;
-batch_size=256;
+batch_size=128;
 epoches=100;
 momentum=0;
 
