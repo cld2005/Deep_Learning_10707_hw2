@@ -44,3 +44,4 @@ clearvars filename delimiter formatSpec fileID dataArray ans;
 %% Plot four gram counts
 figure
 plot(VarName1)
+xlim([-5000, 85000])
