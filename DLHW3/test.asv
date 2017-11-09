@@ -1,0 +1,8 @@
+lm = LM();
+num_hidden_neuron = 128;
+batch_size=10;
+%lm.init(num_hidden_neuron,batch_size);
+
+%[error_value,correct_count]=lm.forward_prop(lm.train(1:10,:));
+
+lm.train_method
