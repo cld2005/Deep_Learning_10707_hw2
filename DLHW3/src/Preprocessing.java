@@ -12,7 +12,7 @@ import java.nio.file.Files;
 public class Preprocessing {
 
     private static HashMap<String, Integer> dict = new HashMap<>();
-    private static HashMap< Integer, String> indexMap = new HashMap<>();
+    private static HashMap<Integer, String> indexMap = new HashMap<>();
     private static HashMap<String, Integer> dictMap = new HashMap<>();
     private static HashMap<String, Integer> fourGramDict = new HashMap<>();
 
@@ -37,13 +37,16 @@ public class Preprocessing {
             e.printStackTrace();
         }
 
+        System.out.println("dict size:" + dict.size());
+
         ArrayList<Map.Entry<String, Integer>> sortList = new ArrayList(dict.entrySet());
 
         Collections.sort(sortList, new Comparator<Map.Entry<String, Integer>>() {
 
             public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {
                 if (o2.getValue().compareTo(o1.getValue()) == 0) {
-                    return o1.getKey().compareTo(o2.getKey());
+                    //return o1.getKey().compareTo(o2.getKey());
+                    return 0;
                 } else {
                     return o2.getValue().compareTo(o1.getValue());
                 }
@@ -60,9 +63,9 @@ public class Preprocessing {
         dictMap.put("<start>", 7998);
         dictMap.put("<unk>", 7999);
         dictMap.put("<end>", 8000);
-        indexMap.put(7998,"<start>");
-        indexMap.put(7999,"<unk>");
-        indexMap.put(8000,"<end>");
+        indexMap.put(7998, "<start>");
+        indexMap.put(7999, "<unk>");
+        indexMap.put(8000, "<end>");
 
         try {
             fos = new FileOutputStream(fout);
@@ -70,7 +73,7 @@ public class Preprocessing {
             for (int i = 0; i < 8000 - 3; i++) {
 
                 dictMap.put(sortList.get(i).getKey(), i + 1);
-                indexMap.put(i+1,sortList.get(i).getKey());
+                indexMap.put(i + 1, sortList.get(i).getKey());
 
                 bw.write(sortList.get(i).getKey());
                 bw.newLine();
@@ -135,7 +138,8 @@ public class Preprocessing {
 
             public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {
                 if (o2.getValue().compareTo(o1.getValue()) == 0) {
-                    return o1.getKey().compareTo(o2.getKey());
+                    //return o1.getKey().compareTo(o2.getKey());
+                    return 0;
                 } else {
                     return o2.getValue().compareTo(o1.getValue());
                 }
@@ -158,7 +162,7 @@ public class Preprocessing {
                     bw.newLine();
                 }
 
-                bwCount.write(String.valueOf(sortList.get(i).getValue()));
+                bwCount.write(sortList.get(i).getKey() + " freq: " + String.valueOf(sortList.get(i).getValue()));
                 bwCount.newLine();
 
                 String[] values = sortList.get(i).getKey().split(" ");
@@ -174,11 +178,13 @@ public class Preprocessing {
 
                     }
 
-                    sb.deleteCharAt(sb.length()-1);
+                    sb.deleteCharAt(sb.length() - 1);
 
+                    for (int k = 0; k < sortList.get(i).getValue(); k++) {
+                        bwFGI.write(sb.toString());
+                        bwFGI.newLine();
+                    }
 
-                    bwFGI.write(sb.toString());
-                    bwFGI.newLine();
                 }
 
 
@@ -188,6 +194,51 @@ public class Preprocessing {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
+        File vFGI = new File("vFGI.txt");
+        FileOutputStream fosvFGI;
+        BufferedWriter bwvFIG;
+        try {
+
+            fosvFGI= new FileOutputStream(vFGI);
+            bwvFIG = new BufferedWriter(new OutputStreamWriter(fosvFGI));
+            BufferedReader readerV = new BufferedReader(new FileReader("val.txt"));
+            String line;
+            while ((line = readerV.readLine()) != null) {
+                line = "<start> " + line + " <end>";
+                String values[] = line.toLowerCase().split(" ");
+                if (values.length < 4) {
+                    continue;
+                }
+                for (int i = 0; i < values.length - 3; i++) {
+
+                    StringBuilder FourGram = new StringBuilder();
+
+                    for (int j = 0; j <= 3; j++) {
+
+                        if (dictMap.containsKey(values[i + j])) {
+                            FourGram.append(dictMap.get(values[i + j]));
+                        } else {
+                            FourGram.append(dictMap.get("<unk>"));
+                        }
+                        FourGram.append(",");
+                    }
+
+                    FourGram.deleteCharAt(FourGram.length() - 1);
+
+                    bwvFIG.write(FourGram.toString());
+                    bwvFIG.newLine();
+
+                }
+
+            }
+
+        }catch (Exception e){
+
+        }
+
+
 
     }
 }
