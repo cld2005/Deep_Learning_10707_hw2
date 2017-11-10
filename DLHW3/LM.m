@@ -23,11 +23,21 @@ classdef LM < handle
         validation_batch_size = 128;
         m;
         train_error=[];
-        vali_error=[]
+        vali_error=[];
+        min_perplexity = 9999;
+        linear = 1;
+        index_map;
         
     end
     
     methods
+        function set_linear(obj,linear)
+            obj.linear=linear;
+        end
+        function clear_data(obj)
+           obj.train = [];
+           obj.validate = [];
+        end
         function set_embed_size(obj,size)
             obj.embed_size=size;
         end
@@ -44,6 +54,21 @@ classdef LM < handle
              obj.train=gpuArray(obj.train);
              obj.validate=gpuArray(obj.validate);
              obj.dict=obj.dict;
+             obj.index_map = containers.Map(obj.dict,[1:size(obj.dict,1)]);
+        end
+        
+        function [prediction]=predict_n_words(obj,start,n)
+            prediction=cell(n,1);
+            for i = 1:n
+                result=obj.forward_predict(start);
+                result_local=gather(result);
+                prediction{i}=gather(result_local);
+                if result_local==8000
+                    break;
+                end
+                start=horzcat(start,result);
+                start=start(:,end-2:end);
+            end 
         end
         
         function init(obj,num_hidden_neuron,batch_size)
@@ -84,7 +109,11 @@ classdef LM < handle
             result(ind)=1;
             for i = 2:obj.num_of_layers
                  obj.preactivation{i}=obj.weights{i}*obj.postactivation{i-1}+obj.biases{i};
-                 obj.postactivation{i}=obj.preactivation{i};
+                 if obj.linear==1 || i==obj.num_of_layers
+                    obj.postactivation{i}=obj.preactivation{i};
+                 else
+                    obj.postactivation{i}=tanh(obj.preactivation{i});
+                 end
             end
             obj.output = softmax(obj.postactivation{end});
             f=dot(obj.output,result);
@@ -107,12 +136,44 @@ classdef LM < handle
             result(ind)=1;
             for i = 2:obj.num_of_layers
                  preactivation{i}=obj.weights{i}*postactivation{i-1}+obj.biases{i};
+                 if obj.linear==1 || i==obj.num_of_layers
                  postactivation{i}=preactivation{i};
+                 else
+                 postactivation{i}=tanh(preactivation{i});
+                 end
             end
             output = softmax(postactivation{end});
             f=dot(output,result);
             corss_entropy_error =sum( -1*log(f));
             l=sum(log( sum(output.*result))/log(2));
+          
+        end
+        
+        function [predict_result]=forward_predict(obj,predict)
+            x = predict(:,1:size(predict,2));
+            temp = obj.word_embed(x',:);
+            temp=temp';
+            postactivation={};
+            preactivation={};
+            postactivation{1}=reshape (temp(:), [obj.embed_size*3 size(predict,1)]);
+            result = gpuArray(zeros(8000,size(predict,1)));
+            ind = sub2ind(size(result),predict(:,size(predict,2))',[1:size(predict,1)]);
+            
+            result(ind)=1;
+            for i = 2:obj.num_of_layers
+                 preactivation{i}=obj.weights{i}*postactivation{i-1}+obj.biases{i};
+                 if obj.linear==1 || i==obj.num_of_layers
+                 postactivation{i}=preactivation{i};
+                 else
+                 postactivation{i}=tanh(preactivation{i});
+                 end
+            end
+            output = softmax(postactivation{end});
+            
+            [~,I]=max(output);
+            
+            predict_result=I';
+
           
         end
         
@@ -131,7 +192,11 @@ classdef LM < handle
                 d_weight{i}=grad_out*(transpose(obj.postactivation{i-1}));
                 d_bias{i}=grad_out;
                 grad_h = transpose(obj.weights{i})*grad_out;
-                grad_out=grad_h;
+                if obj.linear==1
+                     grad_out=grad_h;
+                else
+                     grad_out=grad_h.*(1.-(tanh(obj.preactivation{i-1})).^2);
+                end
             end
             
             
@@ -187,10 +252,17 @@ classdef LM < handle
                     obj.weights = cellfun(@(c1,c2) c1-learning_rate*c2,obj.weights,batch_d_weight,'UniformOutput',false); 
                     obj.biases = cellfun(@(c1,c2) c1-learning_rate*c2,obj.biases,batch_d_bias,'UniformOutput',false);
                     
+                    word_embed_temp=gather(obj.word_embed);
+                    embed_index_temp=gather(embed_index);
+                    batch_d_embed_temp= gather(batch_d_embed);
                     
                     for i =1:size(batch_d_embed,1)
-                        obj.word_embed(embed_index(i),:)=obj.word_embed(embed_index(i),:)-learning_rate*batch_d_embed(i);
+
+                        word_embed_temp(embed_index_temp(i),:)=word_embed_temp(embed_index_temp(i),:)-learning_rate*batch_d_embed_temp(i);
+                        
                     end
+                    
+                    obj.word_embed=gpuArray(word_embed_temp);
                    
 
                  end
@@ -199,7 +271,7 @@ classdef LM < handle
                  sample_count=0;
                  validation_corss_entropy_error=0;
                  l_sum=0;
-                 for batch = 1:floor(size(obj.validate,1)/obj.validation_batch_size)
+                 for batch = 1:ceil(size(obj.validate,1)/obj.validation_batch_size)
                       start_bond  = 1+(batch-1)*obj.validation_batch_size;
                       end_bond=min(batch*obj.validation_batch_size,size(obj.validate,1));
                       sample_count=sample_count+(end_bond-start_bond)+1;
@@ -210,15 +282,20 @@ classdef LM < handle
                  l=l_sum/size(obj.validate,1);
                  perplexity=2^(-l);
                  validation_corss_entropy_error=validation_corss_entropy_error/sample_count;
-                 vali_error(epoch,1)=validation_corss_entropy_error;
-                 vali_error(epoch,2)=perplexity;
+                 vali_error(epoch,1)=gather(validation_corss_entropy_error);
+                 vali_error(epoch,2)=gather(perplexity);
                  fprintf('training cross entropy %f, error rate %f\n', train_error(epoch,1), train_error(epoch,2));
                  fprintf('validation cross entropy %f, perplexity %f\n', validation_corss_entropy_error, perplexity);
+                 if vali_error(epoch,2)< obj.min_perplexity 
+                     save(['best_model_size_' num2str(num_hidden_neuron) '_linear_' num2str(obj.linear) '.mat'],'obj');
+                     obj.min_perplexity=vali_error(epoch,2);
+                 end
                  toc
+                
              end
              
-             obj.train_error = gather(train_error);
-             obj.vali_error = gather(vali_error);
+             obj.train_error = train_error;
+             obj.vali_error = vali_error;
 
          end 
     end

@@ -5,13 +5,14 @@ function [ train,validate,validation_size_m,dictionary] = LoadData()
 fprintf('reading training data ...\n')
 
 train=textread('FGI.txt','','delimiter',',');
-
+train=train(1:end-1,:);
 fprintf('reading validation data  currently nothing ...\n')
 
 fprintf('reading dictionary data ...\n')
 dictionary=textread('dict.txt','%s');
 validation_size_m = 431;
 validate=textread('vFGI.txt','','delimiter',',');
+validate=validate(1:end-1,:);
 fprintf('Load data finish ...\n')
 end
 
