@@ -20,8 +20,10 @@ classdef LM < handle
         
         word_embed = [];
         embed_size=16;
-        
+        validation_batch_size = 128;
         m;
+        train_error=[];
+        vali_error=[]
         
     end
     
@@ -92,7 +94,7 @@ classdef LM < handle
              correct =(indout==indres);
         end
         
-        function [corss_entropy_error, perplexity]=forward_validation(obj,validation)
+        function [corss_entropy_error, l]=forward_validation(obj,validation)
             x = validation(:,1:size(validation,2)-1);
             temp = obj.word_embed(x',:);
             temp=temp';
@@ -110,8 +112,8 @@ classdef LM < handle
             output = softmax(postactivation{end});
             f=dot(output,result);
             corss_entropy_error =sum( -1*log(f));
-            l=sum(log( sum(output.*result))/log(2))/obj.m;
-            perplexity=2^(-l);
+            l=sum(log( sum(output.*result))/log(2));
+          
         end
         
         function [d_weight, d_bias,grad_h] = back_prop (obj,train)
@@ -187,19 +189,37 @@ classdef LM < handle
                     
                     
                     for i =1:size(batch_d_embed,1)
-                        %obj.word_embed(embed_index(i),:)=obj.word_embed(embed_index(i),:)-learning_rate*batch_d_embed(i);
+                        obj.word_embed(embed_index(i),:)=obj.word_embed(embed_index(i),:)-learning_rate*batch_d_embed(i);
                     end
                    
 
                  end
                  train_error(epoch,1)=gather(epoch_cross_entropy_error)/sample_count;
                  train_error(epoch,2)=(1-gather(epoch_success_count)/sample_count)*100;
-                 
-                 [corss_entropy_error, perplexity]=obj.forward_validation(obj.validate);
+                 sample_count=0;
+                 validation_corss_entropy_error=0;
+                 l_sum=0;
+                 for batch = 1:floor(size(obj.validate,1)/obj.validation_batch_size)
+                      start_bond  = 1+(batch-1)*obj.validation_batch_size;
+                      end_bond=min(batch*obj.validation_batch_size,size(obj.validate,1));
+                      sample_count=sample_count+(end_bond-start_bond)+1;
+                      [corss_entropy_error, l_batch]=obj.forward_validation( obj.validate(start_bond:end_bond,:));
+                      validation_corss_entropy_error=validation_corss_entropy_error+corss_entropy_error;
+                      l_sum=l_sum+l_batch;
+                 end
+                 l=l_sum/size(obj.validate,1);
+                 perplexity=2^(-l);
+                 validation_corss_entropy_error=validation_corss_entropy_error/sample_count;
+                 vali_error(epoch,1)=validation_corss_entropy_error;
+                 vali_error(epoch,2)=perplexity;
                  fprintf('training cross entropy %f, error rate %f\n', train_error(epoch,1), train_error(epoch,2));
-                 fprintf('validation cross entropy %f, perplexity %f\n', corss_entropy_error, perplexity);
+                 fprintf('validation cross entropy %f, perplexity %f\n', validation_corss_entropy_error, perplexity);
                  toc
              end
+             
+             obj.train_error = gather(train_error);
+             obj.vali_error = gather(vali_error);
+
          end 
     end
     
