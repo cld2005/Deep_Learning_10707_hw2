@@ -8,9 +8,9 @@ for i=1:size(lms,1)
 
     
     plot(lms{i}.train_error(:,1),'LineWidth',line_width)
-    legendInfo{end+1}=['training cross-entropy' num2str(i)];
+    legendInfo{end+1}=['training cross-entropy hidden layer size ' num2str(lms{i}.num_hidden_neuron)];
     plot(lms{i}.vali_error(:,1),'LineWidth',line_width)
-    legendInfo{end+1}=['Validation cross-entropy' num2str(i)]; 
+    legendInfo{end+1}=['Validation cross-entropy hidden layer size ' num2str(lms{i}.num_hidden_neuron)]; 
 end
 legend(legendInfo);
 hold off
@@ -24,8 +24,9 @@ legendInfo={};
 for i=1:size(lms,1)   
 
     plot(lms{i}.vali_error(:,2),'LineWidth',line_width)
-    legendInfo{end+1}=['Validation Perplexity ' num2str(i)]; 
+    legendInfo{end+1}=['Validation Perplexity hidden layer size ' num2str(lms{i}.num_hidden_neuron)]; 
 end
+legend(legendInfo);
 
 
 

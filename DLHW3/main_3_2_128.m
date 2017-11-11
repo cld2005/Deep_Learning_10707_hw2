@@ -2,7 +2,7 @@ close all;
 lms=cell(1,1);
 lms{1} = LM();
 num_hidden_neuron = 128;
-learning_rate=0.1;
+learning_rate=0.01;
 batch_size=256;
 epoches=100;
 momentum=0;

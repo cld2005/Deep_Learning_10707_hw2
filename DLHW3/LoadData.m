@@ -6,6 +6,7 @@ fprintf('reading training data ...\n')
 
 train=textread('FGI.txt','','delimiter',',');
 train=train(1:end-1,:);
+train = train(randperm(size(train,1)),:);%shuffle data
 fprintf('reading validation data  currently nothing ...\n')
 
 fprintf('reading dictionary data ...\n')

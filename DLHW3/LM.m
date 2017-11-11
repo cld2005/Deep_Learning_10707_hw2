@@ -31,6 +31,9 @@ classdef LM < handle
     end
     
     methods
+        function disable_save_best_model(obj)
+            obj.min_perplexity=-1;
+        end
         function set_linear(obj,linear)
             obj.linear=linear;
         end
@@ -257,8 +260,8 @@ classdef LM < handle
                     batch_d_embed_temp= gather(batch_d_embed);
                     
                     for i =1:size(batch_d_embed,1)
-
-                        word_embed_temp(embed_index_temp(i),:)=word_embed_temp(embed_index_temp(i),:)-learning_rate*batch_d_embed_temp(i);
+      
+                        word_embed_temp(embed_index_temp(i),:)=word_embed_temp(embed_index_temp(i),:)-learning_rate*batch_d_embed_temp(i,:);
                         
                     end
                     
