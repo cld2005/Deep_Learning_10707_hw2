@@ -162,7 +162,7 @@ public class Preprocessing {
                     bw.newLine();
                 }
 
-                bwCount.write(sortList.get(i).getKey() + " freq: " + String.valueOf(sortList.get(i).getValue()));
+                bwCount.write(String.valueOf(sortList.get(i).getValue()));
                 bwCount.newLine();
 
                 String[] values = sortList.get(i).getKey().split(" ");

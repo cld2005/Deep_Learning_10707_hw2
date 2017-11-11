@@ -43,10 +43,9 @@ VarName1 = dataArray{:, 1};
 clearvars filename delimiter formatSpec fileID dataArray ans;
 %% Plot four gram counts
 figure
-hold on
+ho
 title('4-gram distribution')
 line_width=2;
 
 plot(VarName1,'LineWidth',line_width)
 xlim([-5000, 85000])
-hold off
