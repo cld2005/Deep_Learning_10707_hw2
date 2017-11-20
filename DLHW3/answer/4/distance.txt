@@ -1,0 +1,7 @@
+city , town: 2.489170
+business , company: 2.462060
+administration , government: 1.985725
+car , vehicle: 1.688506
+big , city: 5.344898
+no , yes: 3.462495
+university , college: 2.054882
